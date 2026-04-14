@@ -50,7 +50,7 @@ export default function MembersClient({ members }: { members: Member[] }) {
         </div>
       )}
 
-      <div className="bg-surface rounded-xl border border-border overflow-hidden">
+      <div className="bg-surface rounded-xl border border-border overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border">

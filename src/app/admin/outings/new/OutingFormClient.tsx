@@ -90,7 +90,7 @@ export default function OutingFormClient({ seasonId, seasonYear, members }: Outi
 
         <div className="bg-surface rounded-xl border border-border p-4">
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <label htmlFor="date" className="block text-sm font-medium text-fg-muted mb-1.5">
                 Fecha
               </label>
@@ -100,10 +100,10 @@ export default function OutingFormClient({ seasonId, seasonYear, members }: Outi
                 type="date"
                 required
                 defaultValue={getTodayString()}
-                className="w-full bg-overlay border border-border rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:border-fg-muted focus:ring-1 focus:ring-fg-muted/30 transition-colors"
+                className="w-full max-w-full bg-overlay border border-border rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:border-fg-muted focus:ring-1 focus:ring-fg-muted/30 transition-colors"
               />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <label htmlFor="description" className="block text-sm font-medium text-fg-muted mb-1.5">
                 Descripcion (opcional)
               </label>

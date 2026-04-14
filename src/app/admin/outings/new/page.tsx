@@ -20,7 +20,7 @@ export default async function NewOutingPage() {
   const { data: members } = await supabase
     .from("members")
     .select("*")
-    .order("seniority", { ascending: true });
+    .order("name", { ascending: true });
 
   return (
     <OutingFormClient
