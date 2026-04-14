@@ -52,12 +52,23 @@ export default function ClassificationTable({ rows, year }: ClassificationTableP
                     {row.name}
                   </td>
                   <td className="px-4 py-3 text-right pr-5">
-                    <span className={`font-mono font-bold tabular-nums ${style ? style.points : "text-fg-muted"}`}>
-                      {row.points}
+                    <span className="inline-flex items-center justify-end gap-2">
+                      {row.asterisk_count > 0 && (
+                        <span className="relative group cursor-default outline-none" tabIndex={0}>
+                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-accent/20 text-accent text-[10px] font-bold leading-none">
+                            {row.asterisk_count}
+                          </span>
+                          <span className="pointer-events-none absolute bottom-full right-0 mb-1.5 w-max max-w-[160px] rounded-lg bg-overlay border border-border px-2.5 py-1.5 text-xs text-fg shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-150 text-center">
+                            {row.asterisk_count === 1
+                              ? "1 salida no completada"
+                              : `${row.asterisk_count} salidas no completadas`}
+                          </span>
+                        </span>
+                      )}
+                      <span className={`font-mono font-bold tabular-nums ${style ? style.points : "text-fg-muted"}`}>
+                        {row.points}
+                      </span>
                     </span>
-                    {row.has_asterisk && (
-                      <span className="text-accent text-xs ml-px font-bold">*</span>
-                    )}
                   </td>
                 </tr>
               );
@@ -73,11 +84,6 @@ export default function ClassificationTable({ rows, year }: ClassificationTableP
         </table>
       </div>
 
-      {rows.length > 0 && (
-        <p className="text-sm text-fg-muted mt-3 text-right pr-1">
-          * salida no completada
-        </p>
-      )}
     </div>
   );
 }
