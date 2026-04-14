@@ -35,11 +35,11 @@ export default async function AdminDashboard() {
     <div>
       <h1 className="text-xl font-semibold text-fg mb-6">Dashboard</h1>
 
-      <div className="grid grid-cols-3 gap-3 mb-8">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-8">
         {stats.map(({ label, value }) => (
-          <div key={label} className="bg-surface rounded-xl border border-border p-4">
-            <p className="text-sm text-fg-muted mb-2">{label}</p>
-            <p className="text-3xl font-bold text-fg">{value}</p>
+          <div key={label} className="bg-surface rounded-xl border border-border p-3 sm:p-4">
+            <p className="text-xs sm:text-sm text-fg-muted mb-1 sm:mb-2 truncate">{label}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-fg">{value}</p>
           </div>
         ))}
       </div>

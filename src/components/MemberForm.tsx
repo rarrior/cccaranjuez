@@ -29,7 +29,7 @@ export default function MemberForm({ member, onSubmit, onCancel }: MemberFormPro
         <p className="text-red-300 text-sm bg-red-950/60 border border-red-700/50 px-3 py-2 rounded-lg">{error}</p>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1">
           <label htmlFor="name" className="block text-sm font-medium text-fg-muted mb-1.5">
             Nombre
@@ -43,7 +43,7 @@ export default function MemberForm({ member, onSubmit, onCancel }: MemberFormPro
             className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder-fg-subtle focus:outline-none focus:border-fg-muted focus:ring-1 focus:ring-fg-muted/30 transition-colors"
           />
         </div>
-        <div className="w-40">
+        <div className="w-full sm:w-40">
           <label htmlFor="seniority" className="block text-sm font-medium text-fg-muted mb-1.5">
             Antiguedad (mes/año)
           </label>

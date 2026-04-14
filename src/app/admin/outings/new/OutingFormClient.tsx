@@ -89,7 +89,7 @@ export default function OutingFormClient({ seasonId, seasonYear, members }: Outi
         )}
 
         <div className="bg-surface rounded-xl border border-border p-4">
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <label htmlFor="date" className="block text-sm font-medium text-fg-muted mb-1.5">
                 Fecha
@@ -177,7 +177,7 @@ export default function OutingFormClient({ seasonId, seasonYear, members }: Outi
                         onChange={() => toggleCompleted(member.id)}
                         className="w-4 h-4 rounded border-border bg-surface accent-emerald-500"
                       />
-                      <span className="text-sm text-fg-muted">Completo</span>
+                      <span className="hidden sm:inline text-sm text-fg-muted">Completo</span>
                     </label>
                   )}
                 </div>
