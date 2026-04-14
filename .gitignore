@@ -33,6 +33,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# datos sensibles / personal data
+/data/
+/supabase/seeds/production/
+
 # vercel
 .vercel
 
