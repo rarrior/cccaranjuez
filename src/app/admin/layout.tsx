@@ -8,7 +8,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
         {children}
       </main>
-      <footer className="border-t border-border text-center py-4">
+      <footer className="border-t border-border text-center py-4 bg-surface">
         <LogoutButton />
       </footer>
     </>
