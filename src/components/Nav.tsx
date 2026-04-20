@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 
 const PRIMARY_LINKS = [
   { href: "/admin/outings",        label: "Salidas",       exact: false },
@@ -33,31 +34,38 @@ export default function Nav() {
   }, []);
 
   return (
-    <header className="border-b border-border bg-canvas">
+    <header className="bg-navy border-b border-white/10">
       <div className="max-w-4xl mx-auto px-4">
-        <div className="flex items-center justify-between h-12">
+        <div className="flex items-center justify-between h-14">
+
           <Link href={isAdmin ? "/admin" : "/"} className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded-full bg-fg flex items-center justify-center shrink-0">
-              <span className="text-canvas font-black text-[10px]">C</span>
+            <Image src="/icons/escudo-cccaranjuez.png" alt="CCC Aranjuez" width={36} height={36} />
+            <div>
+              <span className="font-extrabold text-sm text-white leading-none block">CCC Aranjuez</span>
+              {isAdmin && (
+                <span className="text-[10px] text-white/40 leading-none">Admin</span>
+              )}
             </div>
-            <span className="font-semibold text-sm text-fg">CCC Aranjuez</span>
           </Link>
 
           {isAdmin && (
-            <nav className="flex items-center gap-1">
+            <nav className="flex items-center gap-0.5">
               {PRIMARY_LINKS.map(({ href, label, exact }) => {
                 const isActive = exact ? pathname === href : pathname.startsWith(href);
                 return (
                   <Link
                     key={href}
                     href={href}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    className={`relative px-3 py-2 rounded-md text-xs font-bold transition-colors ${
                       isActive
-                        ? "bg-overlay text-fg"
-                        : "text-fg-muted hover:text-fg hover:bg-overlay"
+                        ? "text-white"
+                        : "text-white/45 hover:text-white/75 hover:bg-white/5"
                     }`}
                   >
                     {label}
+                    {isActive && (
+                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-accent rounded-full" />
+                    )}
                   </Link>
                 );
               })}
@@ -65,10 +73,10 @@ export default function Nav() {
               <div ref={dropdownRef} className="relative">
                 <button
                   onClick={() => setOpen((v) => !v)}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  className={`relative flex items-center gap-1 px-3 py-2 rounded-md text-xs font-bold transition-colors ${
                     isSecondaryActive
-                      ? "bg-overlay text-fg"
-                      : "text-fg-muted hover:text-fg hover:bg-overlay"
+                      ? "text-white"
+                      : "text-white/45 hover:text-white/75 hover:bg-white/5"
                   }`}
                 >
                   Más
@@ -78,10 +86,13 @@ export default function Nav() {
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
+                  {isSecondaryActive && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-accent rounded-full" />
+                  )}
                 </button>
 
                 {open && (
-                  <div className="absolute right-0 top-full mt-1 w-36 bg-surface border border-border rounded-lg shadow-lg py-1 z-50">
+                  <div className="absolute right-0 top-full mt-1 w-36 bg-surface border border-border rounded-xl shadow-xl py-1 z-50">
                     {SECONDARY_LINKS.map(({ href, label }) => {
                       const isActive = pathname === href;
                       return (
@@ -89,7 +100,7 @@ export default function Nav() {
                           key={href}
                           href={href}
                           onClick={() => setOpen(false)}
-                          className={`block px-3 py-2 text-xs font-medium transition-colors ${
+                          className={`block px-3 py-2 text-xs font-semibold transition-colors ${
                             isActive
                               ? "text-fg bg-overlay"
                               : "text-fg-muted hover:text-fg hover:bg-overlay"

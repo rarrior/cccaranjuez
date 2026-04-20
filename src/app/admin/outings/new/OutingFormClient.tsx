@@ -85,7 +85,7 @@ export default function OutingFormClient({ seasonId, seasonYear, members }: Outi
         <input type="hidden" name="season_id" value={seasonId} />
 
         {error && (
-          <p className="text-red-300 text-sm bg-red-950/60 border border-red-700/50 px-3 py-2 rounded-lg">{error}</p>
+          <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-3 py-2 rounded-lg">{error}</p>
         )}
 
         <div className="bg-surface rounded-xl border border-border p-4">
@@ -159,7 +159,7 @@ export default function OutingFormClient({ seasonId, seasonYear, members }: Outi
                       type="checkbox"
                       checked={isAttending}
                       onChange={() => toggleAttendee(member.id)}
-                      className="w-4 h-4 rounded border-border bg-surface shrink-0 accent-fg"
+                      className="w-4 h-4 rounded border-border bg-surface shrink-0 accent-blue-mid"
                     />
                     <span className={`text-sm truncate ${isAttending ? "text-fg" : "text-fg-muted"}`}>
                       {member.name}
@@ -189,7 +189,7 @@ export default function OutingFormClient({ seasonId, seasonYear, members }: Outi
         <button
           type="submit"
           disabled={loading || attendees.size === 0}
-          className="w-full bg-fg text-canvas py-2.5 rounded-lg text-sm font-semibold hover:bg-fg/90 disabled:opacity-30 transition-colors"
+          className="w-full bg-blue-mid text-white py-2.5 rounded-lg text-sm font-bold hover:bg-blue-mid/90 disabled:opacity-30 transition-colors"
         >
           {loading ? "Guardando..." : "Guardar salida"}
         </button>
