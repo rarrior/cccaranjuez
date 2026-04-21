@@ -8,7 +8,10 @@ interface Props {
   year: number;
 }
 
-// ── Tier colours ──────────────────────────────────────────────────────────
+const CHUNK_SIZE = 15;
+const SCALE      = 3; // 3× for high-DPI sharpness
+
+// ── Colours ───────────────────────────────────────────────────────────────
 const NAVY   = "#0a1540";
 const BLUE   = "#1756d6";
 const YELLOW = "#f5c200";
@@ -25,54 +28,28 @@ const MUTED  = "#5b6b8a";
 const SUBTLE = "#9aaac4";
 const BORDER = "#dce3f5";
 
-function linearGradient(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  colorA: string,
-  colorB: string,
-  horizontal = false,
-) {
-  const grad = horizontal
-    ? ctx.createLinearGradient(x, y, x + w, y)
-    : ctx.createLinearGradient(x, y, x, y + h);
-  grad.addColorStop(0, colorA);
-  grad.addColorStop(1, colorB);
-  return grad;
-}
-
-function drawRoundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-function drawCircle(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  r: number,
-) {
+// ── Helpers ───────────────────────────────────────────────────────────────
+function drawCircle(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.closePath();
+}
+
+function lgrad(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, a: string, b: string) {
+  const g = ctx.createLinearGradient(x, y, x, y + h);
+  g.addColorStop(0, a); g.addColorStop(1, b);
+  return g;
+}
+
+function initials(name: string) {
+  return name.split(" ").slice(0, 2).map((w) => w[0] ?? "").join("").toUpperCase();
+}
+
+type Tier = "podio" | "top10" | "rest";
+function tier(pos: number): Tier {
+  if (pos <= 3)  return "podio";
+  if (pos <= 10) return "top10";
+  return "rest";
 }
 
 function tierConfig(pos: number) {
@@ -91,57 +68,58 @@ function prizeLabel(pos: number): string {
   return "";
 }
 
-function initials(name: string): string {
-  return name.split(" ").slice(0, 2).map((w) => w[0] ?? "").join("").toUpperCase();
-}
+const SECT_LABELS: Record<Tier, { text: string; color: string }> = {
+  podio:  { text: "⭐ PODIO · PREMIO ESPECIAL",     color: GOLD_A },
+  top10:  { text: "🏆 TOP 10 · TAMBIÉN PREMIADOS",  color: GOLD_A },
+  rest:   { text: "RESTO DE PARTICIPANTES",          color: SUBTLE },
+};
 
-// ── Main draw ─────────────────────────────────────────────────────────────
+// ── Build one page image ───────────────────────────────────────────────────
 
-async function buildImage(rows: ClassificationRow[], year: number): Promise<Blob> {
+async function buildPageImage(
+  chunk: ClassificationRow[],
+  startPos: number,
+  pageNum: number,
+  totalPages: number,
+  year: number,
+  logoImg: HTMLImageElement,
+): Promise<Blob> {
   const W        = 640;
   const HEADER_H = 72;
   const HERO_H   = 68;
-  const ROW_H    = 52;
-  const SECT_H   = 32;
-  const FOOTER_H = 40;
-  const LEGEND_H = 40;
-  const PAD      = 16;
+  const ROW_H    = 54;
+  const SECT_H   = 30;
+  const FOOTER_H = 44;
+  const LEGEND_H = totalPages === 1 || pageNum === totalPages ? 44 : 0;
+  const PAD      = 18;
 
-  const top3  = rows.slice(0, 3);
-  const top10 = rows.slice(3, 10);
-  const rest  = rows.slice(10);
+  // Count how many section headers appear in this chunk
+  let sects = 0;
+  let prevTier: Tier | null = startPos > 1 ? tier(startPos - 1) : null;
+  chunk.forEach((_, i) => {
+    const t = tier(startPos + i);
+    if (t !== prevTier) { sects++; prevTier = t; }
+  });
 
-  const sectCount =
-    (top3.length  > 0 ? 1 : 0) +
-    (top10.length > 0 ? 1 : 0) +
-    (rest.length  > 0 ? 1 : 0);
-
-  const H = HEADER_H + HERO_H + sectCount * SECT_H + rows.length * ROW_H + LEGEND_H + FOOTER_H;
+  const H = HEADER_H + HERO_H + sects * SECT_H + chunk.length * ROW_H + LEGEND_H + FOOTER_H;
 
   const canvas  = document.createElement("canvas");
-  canvas.width  = W * 2; // retina
-  canvas.height = H * 2;
+  canvas.width  = W * SCALE;
+  canvas.height = H * SCALE;
   const ctx = canvas.getContext("2d")!;
-  ctx.scale(2, 2);
+  ctx.scale(SCALE, SCALE);
 
-  // ── background ──
+  // background
   ctx.fillStyle = BG;
   ctx.fillRect(0, 0, W, H);
 
-  // ── header bar ──
+  // ── header ──
   ctx.fillStyle = NAVY;
   ctx.fillRect(0, 0, W, HEADER_H);
 
-  // logo
-  const logoImg = new Image();
-  logoImg.src = "/icons/escudo-cccaranjuez.png";
-  await new Promise<void>((res) => {
-    logoImg.onload  = () => res();
-    logoImg.onerror = () => res();
-  });
   const logoSize = 44;
-  const logoX = PAD;
-  const logoY = (HEADER_H - logoSize) / 2;
+  const logoX    = PAD;
+  const logoY    = (HEADER_H - logoSize) / 2;
   ctx.save();
   drawCircle(ctx, logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2);
   ctx.clip();
@@ -150,17 +128,24 @@ async function buildImage(rows: ClassificationRow[], year: number): Promise<Blob
 
   ctx.fillStyle = WHITE;
   ctx.font      = "800 15px -apple-system, sans-serif";
-  ctx.fillText("CCC Aranjuez", logoX + logoSize + 10, logoY + 16);
+  ctx.fillText("CCC Aranjuez", logoX + logoSize + 10, logoY + 17);
   ctx.fillStyle = "rgba(255,255,255,.4)";
   ctx.font      = "600 11px -apple-system, sans-serif";
-  ctx.fillText("Real Sitio de Aranjuez", logoX + logoSize + 10, logoY + 32);
+  ctx.fillText("Real Sitio de Aranjuez", logoX + logoSize + 10, logoY + 34);
 
-  // ── hero strip ──
+  if (totalPages > 1) {
+    ctx.fillStyle = "rgba(255,255,255,.3)";
+    ctx.font      = "700 11px -apple-system, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(`${pageNum} / ${totalPages}`, W - PAD, HEADER_H / 2 + 4);
+    ctx.textAlign = "left";
+  }
+
+  // ── hero ──
   const heroY = HEADER_H;
   ctx.fillStyle = BLUE;
   ctx.fillRect(0, heroY, W, HERO_H);
 
-  // stripes decoration
   ctx.save();
   ctx.translate(W - 60, heroY - 20);
   ctx.rotate(0.31);
@@ -173,47 +158,49 @@ async function buildImage(rows: ClassificationRow[], year: number): Promise<Blob
 
   ctx.fillStyle = YELLOW;
   ctx.font      = "800 10px -apple-system, sans-serif";
-  ctx.fillText(`⬤  TEMPORADA ${year}`, PAD, heroY + 20);
+  ctx.fillText(`⬤  TEMPORADA ${year}`, PAD, heroY + 22);
   ctx.fillStyle = WHITE;
   ctx.font      = "900 22px -apple-system, sans-serif";
-  ctx.fillText("Clasificación General", PAD, heroY + 48);
+  ctx.fillText("Clasificación General", PAD, heroY + 50);
 
   // ── rows ──
-  let y = HEADER_H + HERO_H;
+  let y        = HEADER_H + HERO_H;
+  let lastTier: Tier | null = startPos > 1 ? tier(startPos - 1) : null;
 
-  function drawSection(label: string, labelColor: string) {
-    ctx.fillStyle = BG;
-    ctx.fillRect(0, y, W, SECT_H);
-    ctx.fillStyle = BORDER;
-    ctx.fillRect(0, y + SECT_H - 1, W, 1);
-    ctx.fillStyle = labelColor;
-    ctx.font      = "800 10px -apple-system, sans-serif";
-    ctx.fillText(label.toUpperCase(), PAD + 2, y + SECT_H / 2 + 4);
-    y += SECT_H;
-  }
-
-  function drawRow(row: ClassificationRow, pos: number) {
+  chunk.forEach((row, i) => {
+    const pos = startPos + i;
+    const t   = tier(pos);
     const cfg = tierConfig(pos);
 
-    // row background
+    // section header on tier change
+    if (t !== lastTier) {
+      const { text, color } = SECT_LABELS[t];
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, y, W, SECT_H);
+      ctx.fillStyle = BORDER;
+      ctx.fillRect(0, y + SECT_H - 1, W, 1);
+      ctx.fillStyle = color;
+      ctx.font      = "800 9px -apple-system, sans-serif";
+      ctx.fillText(text, PAD + 2, y + SECT_H / 2 + 4);
+      y += SECT_H;
+      lastTier = t;
+    }
+
+    // row bg
     if (cfg.rowBg) {
-      const grad = ctx.createLinearGradient(0, y, W * 0.6, y);
-      const parsed = cfg.rowBg.match(/[\d.]+/g)!;
-      const [r, g, b, a] = parsed.map(Number);
-      grad.addColorStop(0, `rgba(${r},${g},${b},${a})`);
+      const parsed = cfg.rowBg.match(/[\d.]+/g)!.map(Number);
+      const grad   = ctx.createLinearGradient(0, y, W * 0.6, y);
+      grad.addColorStop(0, `rgba(${parsed[0]},${parsed[1]},${parsed[2]},${parsed[3]})`);
       grad.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = grad;
       ctx.fillRect(0, y, W, ROW_H);
     }
 
     // tier stripe
-    const stripeGrad = ctx.createLinearGradient(0, y, 0, y + ROW_H);
-    stripeGrad.addColorStop(0, cfg.stripeA);
-    stripeGrad.addColorStop(1, cfg.stripeB);
-    ctx.fillStyle = stripeGrad;
+    ctx.fillStyle = lgrad(ctx, 0, y, 0, ROW_H, cfg.stripeA, cfg.stripeB);
     ctx.fillRect(0, y, 4, ROW_H);
 
-    // row bottom border
+    // row border
     ctx.fillStyle = BORDER;
     ctx.fillRect(0, y + ROW_H - 1, W, 1);
 
@@ -222,9 +209,8 @@ async function buildImage(rows: ClassificationRow[], year: number): Promise<Blob
     // position / medal
     const posX = 16;
     if (pos <= 3) {
-      const medalGrad = linearGradient(ctx, posX - 10, cy - 10, 20, 20, cfg.stripeA, cfg.stripeB);
       drawCircle(ctx, posX, cy, 12);
-      ctx.fillStyle = medalGrad;
+      ctx.fillStyle = lgrad(ctx, posX - 12, cy - 12, 0, 24, cfg.stripeA, cfg.stripeB);
       ctx.fill();
       ctx.fillStyle = WHITE;
       ctx.font      = "900 10px -apple-system, sans-serif";
@@ -239,13 +225,12 @@ async function buildImage(rows: ClassificationRow[], year: number): Promise<Blob
       ctx.textAlign = "left";
     }
 
-    // avatar circle
-    const avX = 36;
-    const avR = 14;
-    const avCx = avX + avR;
+    // avatar
+    const avR  = 15;
+    const avCx = 38 + avR;
     const avGrad = pos <= 3
-      ? linearGradient(ctx, avCx - avR, cy - avR, avR * 2, avR * 2, cfg.stripeA, cfg.stripeB)
-      : linearGradient(ctx, avCx - avR, cy - avR, avR * 2, avR * 2, BLUE, "#4ba3d9");
+      ? lgrad(ctx, avCx - avR, cy - avR, 0, avR * 2, cfg.stripeA, cfg.stripeB)
+      : lgrad(ctx, avCx - avR, cy - avR, 0, avR * 2, BLUE, "#4ba3d9");
     drawCircle(ctx, avCx, cy, avR);
     ctx.fillStyle = avGrad;
     ctx.fill();
@@ -255,40 +240,31 @@ async function buildImage(rows: ClassificationRow[], year: number): Promise<Blob
     ctx.fillText(initials(row.name), avCx, cy + 4);
     ctx.textAlign = "left";
 
-    // name
-    const nameX = avX + avR * 2 + 10;
+    // name + prize
+    const nameX  = avCx + avR + 10;
+    const prize  = prizeLabel(pos);
     ctx.fillStyle = TEXT;
     ctx.font      = pos <= 3 ? "700 14px -apple-system, sans-serif" : "600 13px -apple-system, sans-serif";
-    // truncate name
-    let name = row.name;
-    const maxW = W - nameX - 90;
-    while (ctx.measureText(name).width > maxW && name.length > 0) {
-      name = name.slice(0, -1);
-    }
+    let name      = row.name;
+    const maxW    = W - nameX - 95;
+    while (ctx.measureText(name).width > maxW && name.length > 0) name = name.slice(0, -1);
     if (name !== row.name) name = name.slice(0, -1) + "…";
-    ctx.fillText(name, nameX, cy - (prizeLabel(pos) ? 5 : 0));
-
-    // prize label
-    const prize = prizeLabel(pos);
+    ctx.fillText(name, nameX, cy - (prize ? 6 : 0));
     if (prize) {
       ctx.fillStyle = MUTED;
       ctx.font      = "600 10px -apple-system, sans-serif";
       ctx.fillText(prize, nameX, cy + 10);
     }
 
-    // asterisk
+    // asterisk badge
     let ptsX = W - PAD;
     if (row.asterisk_count > 0) {
       const aStr = String(row.asterisk_count);
-      ctx.font = "800 9px -apple-system, sans-serif";
-      const aW = ctx.measureText(aStr).width + 10;
-      const aCx = ptsX - aW / 2 - 28;
+      ctx.font    = "800 9px -apple-system, sans-serif";
+      const aCx   = ptsX - 38;
       drawCircle(ctx, aCx, cy, 9);
-      ctx.fillStyle = "rgba(245,194,0,.2)";
-      ctx.fill();
-      ctx.strokeStyle = "rgba(245,194,0,.5)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
+      ctx.fillStyle = "rgba(245,194,0,.2)"; ctx.fill();
+      ctx.strokeStyle = "rgba(245,194,0,.5)"; ctx.lineWidth = 1; ctx.stroke();
       ctx.fillStyle = GOLD_A;
       ctx.textAlign = "center";
       ctx.fillText(aStr, aCx, cy + 3);
@@ -298,68 +274,81 @@ async function buildImage(rows: ClassificationRow[], year: number): Promise<Blob
 
     // points
     const ptsStr = String(row.points);
-    ctx.font      = pos === 1 ? "800 17px -apple-system, sans-serif" : "700 15px -apple-system, sans-serif";
+    ctx.font      = pos === 1 ? "800 18px -apple-system, sans-serif" : "700 15px -apple-system, sans-serif";
     const ptsW    = ctx.measureText(ptsStr).width;
     ctx.fillStyle = cfg.ptColor;
     ctx.textAlign = "right";
-    ctx.fillText(ptsStr, ptsX - 20, cy + 5);
+    ctx.fillText(ptsStr, ptsX - 18, cy + 5);
     ctx.fillStyle = SUBTLE;
     ctx.font      = "600 9px -apple-system, sans-serif";
-    ctx.fillText("pts", ptsX - 20 + ptsW + 4, cy + 5);
+    ctx.fillText("pts", ptsX - 18 + ptsW + 4, cy + 5);
     ctx.textAlign = "left";
 
     y += ROW_H;
-  }
-
-  if (top3.length > 0) {
-    drawSection("⭐ Podio · Premio especial", GOLD_A);
-    top3.forEach((row, i) => drawRow(row, i + 1));
-  }
-  if (top10.length > 0) {
-    drawSection("🏆 Top 10 · También premiados", GOLD_A);
-    top10.forEach((row, i) => drawRow(row, i + 4));
-  }
-  if (rest.length > 0) {
-    drawSection("Resto de participantes", SUBTLE);
-    rest.forEach((row, i) => drawRow(row, i + 11));
-  }
-
-  // ── legend ──
-  ctx.fillStyle = BG;
-  ctx.fillRect(0, y, W, LEGEND_H);
-  ctx.fillStyle = BORDER;
-  ctx.fillRect(0, y, W, 1);
-  const legendItems = [
-    { colorA: GOLD_A, colorB: GOLD_B, label: "1º Maillot Campeón de Europa · Top 3 Premio" },
-    { colorA: YELLOW, colorB: YELLOW, label: "Top 10 — Premio" },
-  ];
-  let lx = PAD;
-  ctx.font = "600 10px -apple-system, sans-serif";
-  legendItems.forEach(({ colorA, colorB, label }) => {
-    const grad = ctx.createLinearGradient(lx, y + 14, lx, y + 28);
-    grad.addColorStop(0, colorA);
-    grad.addColorStop(1, colorB);
-    ctx.fillStyle = grad;
-    ctx.fillRect(lx, y + 14, 4, 14);
-    ctx.fillStyle = MUTED;
-    ctx.fillText(label, lx + 8, y + 24);
-    lx += ctx.measureText(label).width + 22;
   });
-  y += LEGEND_H;
+
+  // ── legend (last page only) ──
+  if (LEGEND_H > 0) {
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, y, W, LEGEND_H);
+    ctx.fillStyle = BORDER;
+    ctx.fillRect(0, y, W, 1);
+    const items = [
+      { a: GOLD_A, b: GOLD_B, label: "1º Maillot Campeón de Europa · Top 3 Premio" },
+      { a: YELLOW, b: YELLOW, label: "Top 10 — Premio" },
+    ];
+    let lx = PAD;
+    ctx.font = "600 10px -apple-system, sans-serif";
+    items.forEach(({ a, b, label }) => {
+      ctx.fillStyle = lgrad(ctx, lx, y + 13, 0, 15, a, b);
+      ctx.fillRect(lx, y + 13, 4, 15);
+      ctx.fillStyle = MUTED;
+      ctx.fillText(label, lx + 8, y + 24);
+      lx += ctx.measureText(label).width + 22;
+    });
+    y += LEGEND_H;
+  }
 
   // ── footer ──
   ctx.fillStyle = NAVY;
   ctx.fillRect(0, y, W, FOOTER_H);
+  const now = new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
   ctx.fillStyle = "rgba(255,255,255,.35)";
   ctx.font      = "600 11px -apple-system, sans-serif";
   ctx.textAlign = "center";
-  const now = new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
   ctx.fillText(`Club Ciclista CCC Real Sitio de Aranjuez · ${now}`, W / 2, y + FOOTER_H / 2 + 4);
   ctx.textAlign = "left";
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("canvas toBlob failed"))), "image/png");
   });
+}
+
+// ── Build all pages ────────────────────────────────────────────────────────
+
+async function buildImages(rows: ClassificationRow[], year: number): Promise<File[]> {
+  const logoImg = new Image();
+  logoImg.src   = "/icons/escudo-cccaranjuez.png";
+  await new Promise<void>((res) => { logoImg.onload = () => res(); logoImg.onerror = () => res(); });
+
+  const chunks: ClassificationRow[][] = [];
+  for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+    chunks.push(rows.slice(i, i + CHUNK_SIZE));
+  }
+  if (chunks.length === 0) chunks.push([]);
+
+  const total = chunks.length;
+  const files = await Promise.all(
+    chunks.map(async (chunk, idx) => {
+      const blob = await buildPageImage(chunk, idx * CHUNK_SIZE + 1, idx + 1, total, year, logoImg);
+      const name = total === 1
+        ? `clasificacion-ccc-${year}.png`
+        : `clasificacion-ccc-${year}-${idx + 1}de${total}.png`;
+      return new File([blob], name, { type: "image/png" });
+    }),
+  );
+
+  return files;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────
@@ -370,32 +359,30 @@ export default function ShareImageButton({ rows, year }: Props) {
   async function handleShare() {
     setState("loading");
     try {
-      const blob = await buildImage(rows, year);
-      const file = new File([blob], `clasificacion-ccc-${year}.png`, { type: "image/png" });
+      const files = await buildImages(rows, year);
 
       const canShareFiles =
         typeof navigator.share === "function" &&
         typeof navigator.canShare === "function" &&
-        navigator.canShare({ files: [file] });
+        navigator.canShare({ files });
 
       if (canShareFiles) {
-        await navigator.share({
-          files: [file],
-          title: `Clasificación CCC Aranjuez ${year}`,
-        });
+        await navigator.share({ files, title: `Clasificación CCC Aranjuez ${year}` });
       } else {
-        // Fallback: download the image
-        const url = URL.createObjectURL(blob);
-        const a   = document.createElement("a");
-        a.href    = url;
-        a.download = file.name;
-        a.click();
-        URL.revokeObjectURL(url);
+        // Fallback: download each file
+        files.forEach((file) => {
+          const url = URL.createObjectURL(file);
+          const a   = document.createElement("a");
+          a.href    = url;
+          a.download = file.name;
+          a.click();
+          URL.revokeObjectURL(url);
+        });
       }
+
       setState("done");
       setTimeout(() => setState("idle"), 2500);
     } catch (err) {
-      // User cancelled share — treat as idle
       if (err instanceof Error && err.name === "AbortError") {
         setState("idle");
       } else {
