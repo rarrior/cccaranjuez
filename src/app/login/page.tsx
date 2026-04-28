@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -39,14 +40,15 @@ export default function LoginPage() {
         <div className="hero-stripes" />
         <div className="relative z-10 flex flex-col items-center gap-4">
           <div
-            className="w-16 h-16 rounded-full bg-blue-light/30 border-2 border-white/25 flex items-center justify-center"
+            className="w-16 h-16 rounded-full bg-white flex items-center justify-center"
           >
-            <div
-              className="w-10 h-10 rounded-full bg-blue-light flex items-center justify-center font-black text-navy text-sm"
-              style={{ boxShadow: "0 0 0 2px rgba(255,255,255,.2)" }}
-            >
-              C
-            </div>
+            <Image
+              src="/icons/escudo-cccaranjuez.png"
+              alt="Escudo CCC Aranjuez"
+              width={44}
+              height={44}
+              className="object-contain"
+            />
           </div>
           <div className="text-center">
             <h1 className="text-lg font-black text-white leading-tight">

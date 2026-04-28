@@ -90,7 +90,7 @@ async function buildPageImage(
   const ROW_H    = 54;
   const SECT_H   = 30;
   const FOOTER_H = 44;
-  const LEGEND_H = totalPages === 1 || pageNum === totalPages ? 44 : 0;
+  const LEGEND_H = 44;
   const PAD      = 18;
 
   // Count how many section headers appear in this chunk
@@ -256,12 +256,12 @@ async function buildPageImage(
       ctx.fillText(prize, nameX, cy + 10);
     }
 
-    // asterisk badge
+    // asterisk badge — anchored to right edge so it never overlaps "pts"
     let ptsX = W - PAD;
     if (row.asterisk_count > 0) {
       const aStr = String(row.asterisk_count);
       ctx.font    = "800 9px -apple-system, sans-serif";
-      const aCx   = ptsX - 38;
+      const aCx   = W - PAD - 12;
       drawCircle(ctx, aCx, cy, 9);
       ctx.fillStyle = "rgba(245,194,0,.2)"; ctx.fill();
       ctx.strokeStyle = "rgba(245,194,0,.5)"; ctx.lineWidth = 1; ctx.stroke();
@@ -269,19 +269,19 @@ async function buildPageImage(
       ctx.textAlign = "center";
       ctx.fillText(aStr, aCx, cy + 3);
       ctx.textAlign = "left";
-      ptsX -= 26;
+      ptsX -= 22;
     }
 
     // points
     const ptsStr = String(row.points);
     ctx.font      = pos === 1 ? "800 18px -apple-system, sans-serif" : "700 15px -apple-system, sans-serif";
-    const ptsW    = ctx.measureText(ptsStr).width;
     ctx.fillStyle = cfg.ptColor;
     ctx.textAlign = "right";
     ctx.fillText(ptsStr, ptsX - 18, cy + 5);
     ctx.fillStyle = SUBTLE;
     ctx.font      = "600 9px -apple-system, sans-serif";
-    ctx.fillText("pts", ptsX - 18 + ptsW + 4, cy + 5);
+    ctx.textAlign = "left";
+    ctx.fillText("pts", ptsX - 15, cy + 5);
     ctx.textAlign = "left";
 
     y += ROW_H;
