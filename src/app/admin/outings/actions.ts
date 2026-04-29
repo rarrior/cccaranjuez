@@ -51,6 +51,54 @@ export async function createOuting(formData: FormData) {
   redirect("/admin/classification");
 }
 
+export async function updateOuting(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autorizado");
+
+  const outingId = formData.get("outing_id") as string;
+  const date = formData.get("date") as string;
+  const description = (formData.get("description") as string) || null;
+
+  if (!outingId || !date) {
+    return { error: "ID y fecha son obligatorios" };
+  }
+
+  const { error: outingError } = await supabase
+    .from("outings")
+    .update({ date, description })
+    .eq("id", outingId);
+
+  if (outingError) return { error: outingError.message };
+
+  const { error: deleteError } = await supabase
+    .from("attendances")
+    .delete()
+    .eq("outing_id", outingId);
+
+  if (deleteError) return { error: deleteError.message };
+
+  const attendees = formData.getAll("attendee") as string[];
+  const completedList = formData.getAll("completed") as string[];
+
+  if (attendees.length > 0) {
+    const attendances = attendees.map((memberId) => ({
+      outing_id: outingId,
+      member_id: memberId,
+      completed: completedList.includes(memberId),
+    }));
+
+    const { error: attError } = await supabase.from("attendances").insert(attendances);
+    if (attError) return { error: attError.message };
+  }
+
+  revalidatePath("/admin/outings");
+  revalidatePath("/admin/classification");
+  revalidatePath("/admin");
+  revalidatePath("/");
+  redirect("/admin/outings");
+}
+
 export async function deleteOuting(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
