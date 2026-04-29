@@ -89,15 +89,23 @@ export default async function OutingsPage() {
                     {outing.description || <span className="text-fg-subtle">—</span>}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <form action={deleteOuting} className="inline">
-                      <input type="hidden" name="id" value={outing.id} />
-                      <button
-                        type="submit"
-                        className="text-xs text-red-500 hover:text-red-600 transition-colors border border-red-200 hover:border-red-300 rounded-md px-2.5 py-1"
+                    <div className="flex items-center justify-end gap-2">
+                      <Link
+                        href={`/admin/outings/${outing.id}/edit`}
+                        className="text-xs text-fg-muted hover:text-fg transition-colors border border-border hover:border-fg-muted rounded-md px-2.5 py-1"
                       >
-                        Eliminar
-                      </button>
-                    </form>
+                        Editar
+                      </Link>
+                      <form action={deleteOuting} className="inline">
+                        <input type="hidden" name="id" value={outing.id} />
+                        <button
+                          type="submit"
+                          className="text-xs text-red-500 hover:text-red-600 transition-colors border border-red-200 hover:border-red-300 rounded-md px-2.5 py-1"
+                        >
+                          Eliminar
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               ))}
